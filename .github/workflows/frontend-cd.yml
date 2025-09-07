@@ -14,26 +14,11 @@ on:
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'sit722aks'
+        default: 'sit722aks-simba01'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
         default: 'sit722-rg'
-
-  workflow_call:
-    inputs:
-      product_api_ip:
-        required: true
-        type: string
-      order_api_ip:
-        required: true
-        type: string
-      aks_cluster_name:
-        required: true
-        type: string
-      aks_resource_group:
-        required: true
-        type: string
 
 jobs:
   deploy_frontend:
@@ -44,13 +29,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Azure login using a Service Principal secret
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Login to Azure Container Registry (hardcoded name)
       - name: Login to Azure Container Registry
         run: az acr login --name sit722acrsimba01
 
@@ -59,11 +42,8 @@ jobs:
           echo "Injecting IPs into frontend/main.js"
           sed -i "s|_PRODUCT_API_URL_|${{ inputs.product_api_ip }}|g" frontend/main.js
           sed -i "s|_ORDER_API_URL_|${{ inputs.order_api_ip }}|g" frontend/main.js
-          echo "--- Modified main.js content ---"
           cat frontend/main.js
-          echo "---------------------------------"
 
-      # Build and Push Docker image for Frontend
       - name: Build and Push Frontend Image
         run: |
           docker build -t sit722acrsimba01.azurecr.io/frontend:latest ./frontend/
@@ -81,5 +61,5 @@ jobs:
           cd k8s/
           kubectl apply -f frontend.yaml
 
-      - name: Logout from Azure (AKS deployment)
+      - name: Logout from Azure
         run: az logout
